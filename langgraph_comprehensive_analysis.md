@@ -14,82 +14,83 @@
 ---
 
 ### A. Domain
-*   **Field:** Multi-Agent Systems, Cognitive Orchestration, and Stateful Workflows.
-*   **Common Industries:** Autonomous business process execution, complex customer support portals, robotic process automation (RPA), code generation pipelines.
-*   **Problems Solved:** Enforcing strict execution pathways, managing dynamic agent transitions, capturing memory state across cycles, and enabling human interaction checkpoints.
-*   **Other Domain Technologies:** AutoGen, CrewAI, Temporal, AWS Step Functions, Semantic Kernel, and PydanticAI.
+*   **Which field does it belong to?** Multi-Agent Systems, Cognitive Architectures, and Stateful Workflow Automation.
+*   **Which industry commonly uses it?** Enterprise Software, LegalTech, FinTech, Support Automation, and Software Engineering tools.
+*   **What type of problems does this domain solve?** Coordinating multiple language models, enforcing structured execution sequences, handling error loops, and persisting long-term memory.
+*   **Which other technologies exist in this domain?** AutoGen, CrewAI, PydanticAI, Temporal, AWS Step Functions, and Semantic Kernel.
 
 ---
 
 ### A0. Underlying Concepts
 
-#### Concepts to Understand Before LangGraph
-*   **State Machines:** A system defined by a collection of states, transitions, and actions.
-*   **Directed Acyclic and Cyclic Graphs (DAGs/DCGs):** Mathematical structures representing nodes (processing units) and edges (execution pathways).
-*   **Single-Threaded vs. Concurrent Execution:** Executing tasks sequentially or in parallel, coordinating resource access.
+#### What concepts must be understood before LangGraph?
+*   **State Machines:** Mathematical models of computation that can be in exactly one of a finite number of states at any given time.
+*   **Directed Graphs & Cycles:** Structures consisting of nodes connected by edges, where pathways can loop back to previous nodes.
+*   **Asynchronous Concurrency:** Execution models that perform tasks concurrently without blocking the main program thread.
 
-#### Why Each Concept is Important
-*   *State Machines:* Provide the blueprint to restrict what an LLM can do next, preventing non-deterministic runaway execution loops.
-*   *Cyclic Graphs:* Enable the model to loop (e.g., execute tool -> observe error -> refactor prompt -> run again) until a terminal condition is met.
-*   *Concurrency:* Coordinates multi-agent collaboration, allowing multiple sub-agents to run independently and merge states safely.
+#### Why is each concept important?
+*   *State Machines:* Standardizes how memory and execution pointers are updated, preventing runaway behaviors.
+*   *Cyclic Graphs:* Allows the LLM to run iteration loops (e.g. check output -> locate error -> rewrite -> check again).
+*   *Asynchronous Concurrency:* Prevents web application servers from blocking while waiting for slow LLM HTTP responses.
 
-#### How Concepts Connect
-In LangGraph, you declare a State Machine by configuring a StateGraph. Nodes in the graph act as states/tasks, and edges direct the execution path. Because LLM tool execution requires cycles (looping back to fix errors), the graph must handle cyclic edges (non-DAG).
+#### How do these concepts connect together?
+LangGraph runs a State Machine as a Cyclic Graph where each processing node is an async function that reads and updates a shared State schema, transitioning along edges based on model outputs.
 
 ---
 
 ### A1. Prerequisites
 
 #### Identify Required Knowledge
-*   **Assumed Knowledge:** Asynchronous programming constructs (`async/await` and coroutines), schema modeling with Pydantic v2, RESTful client patterns, and JSON-based tool definition shapes.
-*   **Concepts Skipped by Tutorials:** Thread-safe state mergers, message accumulation math, event loop blocking by synchronous calls, and checkpoint write-locks.
-*   **Topics Repeated in Docs:** `State` schemas, `StateGraph` compilations, `SqliteSaver` checkpointers, conditional edge routers, and the `add_messages` reducer function.
-*   **Skills Expected by Employers:** Building multi-agent supervisors, configuring postgres-backed session persistence, implementing human-in-the-loop review screens, and writing evaluations for agent loops.
-*   **Minimum Concepts Needed:** State structures, nodes, static edges, conditional edges, checkpointers, and thread IDs.
-*   **Foundational Remnants (If LangGraph was removed):** Core LangChain libraries (prompts, models, parsers), raw SQL databases (for session management), and manual routing scripts containing loops.
-*   **Abstracted Concepts:** Graph compiling, execution execution-pointer tracking, automatic checkpoint generation, and conditional route parsing.
-*   **Dependencies:** `networkx`, `pydantic`, `langchain_core`.
-*   **Can you bypass dependencies?** No. LangGraph relies on Pydantic to validate state schemas, NetworkX to resolve routing graphs, and LangChain Core to interact with LLMs.
+*   **What knowledge is assumed before learning this technology?** Asynchronous Python (`asyncio`), schema definition using Pydantic, HTTP client protocols, and JSON parsing.
+*   **What concepts do most tutorials skip because they assume I already know them?** Pydantic field reducers, concurrency locks, state serialization, and event loop management.
+*   **What topics appear repeatedly in the documentation?** State schemas, compile steps, SQLite checkpointers, and conditional edge routing functions.
+*   **What skills do employers expect before using this technology?** Setting up multi-agent supervisors, deploying graph runtimes in production, implementing human-in-the-loop triggers, and auditing token costs.
+*   **What are the minimum concepts required to understand this technology?** State, nodes, edges, conditional edges, and checkpointers.
+*   **What should I learn first so this technology makes sense?** LangChain Core (prompts, models, parsers) and basic state machine models.
+*   **If I removed this technology, what foundational technologies would still remain?** Python/TypeScript async libraries, native LLM provider SDKs, relational databases, and manual loop structures.
+*   **Which concepts are being abstracted away by this technology?** State serialization, execution checkpointing, dynamic routing logic, and thread sandboxing.
+*   **What does this technology depend on?** `pydantic` (v2), `networkx` (graph math), and `langchain_core` (LLM wrappers).
+*   **Can I use this technology without knowing those dependencies?** No. Understanding Pydantic and LangChain is mandatory to write state schemas and define node logic.
 
 #### Prerequisite Dependency Analysis
 1.  **Python / TypeScript Async Concurrency:**
-    *   *Why:* LangGraph agents wait for slow network tool calls and API responses concurrently.
-    *   *Problem:* Without async, executing multiple tools sequentially blocks the server event loop.
-    *   *Depth:* Production-level (must manage async queues and parallel task merges).
-    *   *Relevant parts:* `asyncio.gather`, `asyncio.sleep`, and async generator streams.
+    *   *Why Needed:* LangGraph agents run slow network tasks in parallel.
+    *   *Problem Solved:* Blocks thread freezing on concurrent API executions.
+    *   *Minimum Depth:* Intermediate (writing async generators, using task queues).
+    *   *Relevant Parts:* `asyncio.gather`, `await` triggers, and streaming loops.
 2.  **Pydantic Schema Validation:**
-    *   *Why:* To validate input and output variables passed between graph nodes.
-    *   *Problem:* Without typing checks, nodes can write invalid data keys, causing silent downstream crashes.
-    *   *Depth:* Intermediate/Production (custom field overrides and validators).
-    *   *Relevant parts:* Field validation rules, custom typing, and schema export.
+    *   *Why Needed:* The state passed to nodes must match strict types.
+    *   *Problem Solved:* Avoids runtime schema issues and type mismatches.
+    *   *Minimum Depth:* Intermediate (field validators, base configurations).
+    *   *Relevant Parts:* `BaseModel`, `Field` metadata, and type parsing.
 3.  **LangChain Core / LCEL:**
-    *   *Why:* To invoke chat models, format messages, and parse output tokens within nodes.
-    *   *Problem:* Without standard wrappers, you must write provider-specific payload formatters inside every node.
-    *   *Depth:* Intermediate (compiling prompts, models, and parsers).
-    *   *Relevant parts:* ChatPromptTemplate, ChatModels, and structured JSON parsing.
-4.  **Vector Search & Document Indexing:**
-    *   *Why:* To retrieve context data (RAG) when executed as a node task.
-    *   *Problem:* Feeding massive raw texts to the agent overflows context windows.
-    *   *Depth:* Conceptual / Hands-on.
-    *   *Relevant parts:* Embeddings, chunking strategies, and vector query filters.
+    *   *Why Needed:* Nodes use LangChain to construct prompts and query models.
+    *   *Problem Solved:* Standardizes interactions across model APIs.
+    *   *Minimum Depth:* Intermediate (composing pipelines via the pipe operator `|`).
+    *   *Relevant Parts:* Prompts, ChatModels, and OutputParsers.
+4.  **Vector Search & Document Indexing (RAG):**
+    *   *Why Needed:* Provides relevant context to agents.
+    *   *Problem Solved:* Limits prompt tokens by pulling relevant context.
+    *   *Minimum Depth:* Conceptual (similarity search and embeddings).
+    *   *Relevant Parts:* Embedding dimensions and vector databases.
 
 #### Foundation Validation
 *   *Prerequisite:* LangChain Core.
-*   *Sentence Explanation:* LangChain standardizes prompts, models, and parsers into unified interfaces.
-*   *Why it exists:* To eliminate provider-specific API glue code.
-*   *Problem Solved:* Simplifies swapping models and databases in LLM pipelines.
-*   *Tiny Project:* Using LangChain to call a chat model, format the output, and parse it as a JSON dict.
-*   *Internals:* Formats inputs into system/user messages, calls the HTTP API, and parses the response payload.
-*   *Limitations:* Rigid; struggles with loops, branching routing, and state persistence.
-*   *Alternatives:* Native provider SDKs (OpenAI/Gemini/Anthropic).
+*   *Can I explain it in one sentence?* LangChain standardizes prompts, models, and parsers into unified interfaces.
+*   *Can I explain why it exists?* To eliminate provider-specific API glue code.
+*   *Can I explain what problem it solves?* Simplifies swapping models and databases in LLM pipelines.
+*   *Can I build a tiny project using it?* Yes, a script that queries a model and parses output to JSON.
+*   *Can I explain how it works internally?* Translates prompt objects into JSON HTTP queries and decodes responses.
+*   *Can I explain its limitations?* Rigid; struggles with loops, branching routing, and state persistence.
+*   *Can I compare it with alternatives?* Native provider SDKs (OpenAI/Gemini/Anthropic).
 
 #### Dependency Tree Questions
-*   **Direct Requirements:** Python Async, Pydantic, LangChain Core, NetworkX.
-*   **Indirect Requirements:** Vector Databases, Embedding Models, LLM APIs.
-*   **Most Critical:** Asynchronous network IO and Pydantic validation.
-*   **Most Confusing If Skipped:** Pydantic validation and type validation.
-*   **Learning Order:** Python Async -> REST APIs -> LLM Prompting -> Vector Math -> RAG -> LangChain -> LangGraph.
-*   **Dependency Tree:**
+*   **What technologies are directly required?** Python/JS async, Pydantic, NetworkX, LangChain Core.
+*   **What technologies are indirectly required?** Vector databases, embedding models, model providers.
+*   **Which prerequisite is most critical?** Asynchronous execution models.
+*   **Which prerequisite causes the most confusion if skipped?** Pydantic state reducers.
+*   **What order should I learn them in?** Python Async -> REST APIs -> LLM Prompting -> Vector Math -> RAG -> LangChain -> LangGraph.
+*   **Can I draw a dependency tree?** Yes:
     ```
     Python Async & OOP
     ↓
@@ -108,12 +109,12 @@ In LangGraph, you declare a State Machine by configuring a StateGraph. Nodes in 
     LangGraph (Stateful Agent Systems)
     ```
 
-#### Learning Depth
-*   **Python/TypeScript:** Production-level (must manage concurrency).
-*   **APIs:** Production-level (must handle rate limits, auth, retries).
-*   **Vector Math:** Conceptual (must understand search limitations).
-*   **RAG Pipeline:** Hands-on/Production (must optimize search quality).
-*   **LangChain Core:** Hands-on (must understand runnables).
+#### Learning Depth Questions
+*   **Do I need awareness only?** No, you need hands-on coding experience.
+*   **Do I need conceptual understanding?** Yes, especially for graph theory.
+*   **Do I need hands-on experience?** Yes, mandatory to write graphs.
+*   **Do I need production-level expertise?** Required to build commercial agents.
+*   **What is the minimum depth required before moving forward?** Ability to build basic async chains and validate JSON objects.
 
 #### Prerequisite Completion Checklist
 *   [x] Write an async call that executes three LLM API queries in parallel and waits for all of them.
@@ -139,49 +140,50 @@ In LangGraph, you declare a State Machine by configuring a StateGraph. Nodes in 
 ---
 
 ### B. Foundation Technology
-*   **Language & Runtime:** Python (v3.9+) and TypeScript (Node.js/Bun).
-*   **Underlying Dependencies:** Pydantic (data parsing), `networkx` (graph traversal calculations), and standard async library runtimes.
-*   **Coupling to LangChain:** Moderate. While LangGraph was built by the LangChain team and natively interfaces with LangChain classes, it is technically model-agnostic and can run using raw model SDKs or custom Python functions inside nodes.
+*   **What language is LangGraph built with?** Python (v3.9+) and TypeScript (Node.js/Bun).
+*   **What technologies does it depend on?** Pydantic (validation), NetworkX (graph traversal calculations), and standard async library runtimes.
+*   **How tightly is it coupled to LangChain?** Moderate. While built by the LangChain team to integrate with LangChain classes, it is model-agnostic and can run using raw model SDKs or custom Python functions inside nodes.
+*   **Can it exist without those dependencies?** No, it requires a schema validation engine and a graph library to navigate execution edges.
 
 ---
 
 ### C. Historical Problem
-
-#### Problems with LangChain Agents
-*   **Lack of Loops:** Traditional LangChain chains are directed acyclic graphs (DAGs). Composing execution loops (like ReAct) was hardcoded internally.
-*   **State Loss:** Passing variable history between independent agent runs was fragile and lacked atomic tracking.
-*   **Lack of Control:** Developers had no way to insert manual approvals (human-in-the-loop) mid-execution or step back to a prior state.
-
-#### Why Insufficient
-The default AgentExecutor was a black-box system. If you wanted to customize how the agent responded to tool errors, or split a task among multiple agents, you had to override the core framework classes.
-
-#### Production Issues
-*   Runaway infinite loops that quickly consumed developer API budgets.
-*   State corruption during concurrent operations.
-*   Difficulty tracing which sub-component failed inside nested logic.
+*   **What pain existed before this technology?** Composing loops (like checking tool errors) in DAG-based frameworks required writing complex, hard-to-maintain state-tracking logic.
+*   **Who experienced this pain?** Software engineers building early GenAI agents in late 2022/early 2023.
+*   **How severe was the problem?** Very High. codebase complexity was bloated with 80% wrapper glue-code and 20% actual business logic.
+*   **How were people solving it previously?** Ad-hoc python scripts with while loops and global dictionaries.
+*   **Why were older solutions insufficient?** Lacked standard structures, was prone to state corruption, and had no checkpointing for recovery.
+*   **What was the cost of not solving the problem?** Slow release cycles, regression bugs when prompts changed, and unmanageable production code.
 
 ---
 
 ### D. Existence
-*   **Why Created:** To address the limitations of the linear, black-box AgentExecutor class in LangChain.
-*   **Who & When:** Developed by Harrison Chase and LangChain, Inc. in early 2024.
-*   **Gap Filled:** Providing a low-level, state-oriented graph builder that supports cyclic execution paths, state persistence, and human-in-the-loop intervention.
+*   **Why was this technology created?** To replace the rigid, black-box `AgentExecutor` class in LangChain with a low-level, state-oriented graph runtime.
+*   **Who created it?** Harrison Chase and the LangChain core team.
+*   **When was it created?** Early 2024.
+*   **What specific gap was it trying to fill?** Supporting cyclic execution pathways, state persistence, and human-in-the-loop step control.
+*   **What design goals did the creators have?** Low-level control, explicit state transitions, and built-in persistence.
+*   **What trade-offs were intentionally made?** Sacrificed simplicity and fast setup times for complete control over execution states.
 
 ---
 
 ### E. Purpose
-*   **Design Focus:** Building stateful, multi-agent architectures that support loops and human validation checkpoints.
-*   **Primary Mission:** Standardizing state management and routing logic inside cyclic, multi-step LLM workflows.
+*   **What is LangGraph designed to do?** To orchestrate stateful, multi-agent systems featuring loops and human interaction checkpoints.
+*   **What is its primary mission?** Standardizing state management and routing logic inside cyclic, multi-step LLM workflows.
+*   **What does success look like when using it?** Building a production-grade agent that handles error recovery, persists state, and processes concurrent requests safely.
 
 ---
 
 ### F. Problem Solved
-*   **Engineering Problems Solved:** State preservation during long-running tasks, execution tracing, error recovery loops, and thread-based memory sandboxing.
-*   **Why Difficult:** LLMs are non-deterministic. Without a state graph, coordinating multiple dynamic model outputs while managing parallel execution and keeping memory history is prone to race conditions and bugs.
+*   **What exact engineering problems does LangGraph solve?** State preservation during long-running tasks, execution tracing, error recovery loops, and thread-based memory sandboxing.
+*   **For whom does it solve the problem?** AI Engineers and GenAI Architects.
+*   **How does it reduce cost, effort, risk, or complexity?** Eliminates the need to write custom state serialization and checkpointing logic.
+*   **Can I explain the problem in one sentence?** Building cyclic, stateful LLM applications requires writing complex, fragile boilerplate to track history, handle retries, and pause for human inputs.
+*   **Can I explain the solution in one sentence?** LangGraph provides a low-level graph engine that standardizes state updates, cyclic transitions, persistence, and human-in-the-loop checkpoints.
 
 ---
 
-### G. Alternatives Comparison
+### G. Alternatives
 
 #### Alternative Overview
 *   **LangChain Agents:** Linear, high-level abstractions. Simple but rigid.
@@ -192,15 +194,16 @@ The default AgentExecutor was a black-box system. If you wanted to customize how
 *   **Semantic Kernel:** Enterprise orchestration SDK. Strong corporate support, but complex to implement.
 *   **OpenAI Agents SDK:** Native lightweight tool. Tied entirely to OpenAI models.
 
-#### Framework Ranking Table
-| Rank | Technology | Focus | Loops | State Control | Production Score | Learning Difficulty | Industry Adoption |
-| :---: | :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| **1** | LangGraph | Stateful Cyclic Graphs | Excellent | Excellent | 9.5 | High | Very High |
-| **2** | PydanticAI | Type-safe validation | Medium | High | 8.5 | Medium | Growing |
-| **3** | OpenAI Agents | Native API wrapper | Medium | Medium | 8.0 | Low | High |
-| **4** | CrewAI | Role-play teams | Medium | Low | 6.5 | Low | High |
-| **5** | AutoGen | Conversational simulation| High | Low | 5.5 | High | Moderate |
-| **6** | LangChain Agents| Basic linear tools | Poor | Low | 5.0 | Low | Deprecated |
+#### Comparison Table
+| Framework | Purpose | Strengths | Weaknesses | Best Use Cases | Learning Difficulty | Industry Adoption |
+| :--- | :--- | :--- | :--- | :--- | :---: | :--- |
+| **LangGraph** | Stateful cyclic agents | Multi-agent support, checkpointers, human-in-the-loop. | Verbose code, steep learning curve. | Production agents, complex state workflows. | High | Very High |
+| **CrewAI** | Role-based agent teams | Fast agent configuration, easy orchestration. | Lacks state controls, prone to loops. | Marketing campaigns, business research. | Low | High |
+| **AutoGen** | Agent conversations | Dynamic conversation topologies. | Prone to loop issues, hard to validate. | Dynamic simulations, multi-agent games. | High | Moderate |
+| **PydanticAI** | Type-safe structured agents | Pydantic validation, clean pythonic design. | Smaller ecosystem of integrations. | Backend agents requiring strict schema validation. | Low-Medium | Growing |
+| **Haystack** | Search Pipelines | Performance, modular search. | Smaller ecosystem compared to LangChain. | Enterprise search, hybrid QA. | Medium | Moderate |
+| **Semantic Kernel** | Corporate orchestration | Strong C#/.NET support, enterprise hooks. | Over-engineered, complex setup. | Microsoft enterprise environments. | High | Moderate |
+| **OpenAI Agents** | Native model calling | Fast integration, low latency. | Vendor lock-in, limited functionality. | Simple tool calling using OpenAI. | Low | High |
 
 ---
 
@@ -358,9 +361,11 @@ The default AgentExecutor was a black-box system. If you wanted to customize how
 ---
 
 ### J. Internal Workflow
-1.  **User Request:** The client calls `graph.stream({"messages": [HumanMessage(content="Hello")]}, config)`.
-2.  **State Initialization:** The execution engine initializes the state, validating values against schemas (e.g. Pydantic).
-3.  **Node Execution:** The engine executes the active node. The node function processes data and returns a state update dictionary.
+
+#### Execution step-by-step
+1.  **User Request:** The user triggers execution: `graph.stream({"messages": [HumanMessage(content="Hello")]}, config)`.
+2.  **State Initialization:** The framework sets up the initial state and runs validation checks on Pydantic schemas.
+3.  **Node Execution:** The engine fires the active node. The node function processes variables and returns a state update dictionary.
 4.  **State Update:** The engine applies the update to the state. Lists are updated using reducer functions (e.g., `add_messages`) to append new messages.
 5.  **Routing Decision:** The engine evaluates edges leaving the node. If it hits a conditional edge, it runs the routing function to select the next node.
 6.  **Tool Execution (Optional):** If routed to tools, the tools node runs the functions requested by the model and updates the state with results.
@@ -417,29 +422,100 @@ The default AgentExecutor was a black-box system. If you wanted to customize how
 ---
 
 ### Q. Small Project: "Local Verification Agent"
-A simple agent that generates a response, checks it for prohibited terms, and loops back to rewrite it if terms are found.
-*   *Concepts Learned:* State schemas, node creation, conditional routing, and cyclic execution.
-*   *Why Important:* Demonstrates how to use graph loops to enforce safety rules on model outputs.
+
+#### Code Implementation
+```python
+import asyncio
+from typing import Annotated, TypedDict
+from langchain_openai import ChatOpenAI
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langgraph.graph import StateGraph, END
+from langgraph.graph.message import add_messages
+from langgraph.checkpoint.memory import MemorySaver
+
+# 1. State Definition with add_messages Reducer
+class AgentState(TypedDict):
+    messages: Annotated[list[BaseMessage], add_messages]
+    safety_check_passed: bool
+
+# Initialize Model
+model = ChatOpenAI(model="gpt-4o")
+
+# 2. Node definitions
+async def generator_node(state: AgentState):
+    # Generates a response draft
+    messages = state["messages"]
+    prompt = [
+        HumanMessage(content="Draft a short tweet thanking users for using LangGraph. Do not use hashtags.")
+    ] if not any(isinstance(m, AIMessage) for m in messages) else messages
+    
+    response = await model.ainvoke(prompt)
+    return {"messages": [response], "safety_check_passed": False}
+
+async def checker_node(state: AgentState):
+    # Safety Check: Block hashtags in output
+    last_msg = state["messages"][-1].content
+    has_hashtags = "#" in last_msg
+    return {"safety_check_passed": not has_hashtags}
+
+# 3. Router logic
+def safety_router(state: AgentState):
+    if state["safety_check_passed"]:
+        return "end"
+    return "generate"
+
+# 4. Build and Compile Graph
+workflow = StateGraph(AgentState)
+workflow.add_node("generate", generator_node)
+workflow.add_node("check", checker_node)
+
+workflow.set_entry_point("generate")
+workflow.add_edge("generate", "check")
+workflow.add_conditional_edges(
+    "check",
+    safety_router,
+    {"generate": "generate", "end": END}
+)
+
+# SQLite in-memory checkpointer
+memory = MemorySaver()
+graph = workflow.compile(checkpointer=memory)
+
+async def test_run():
+    config = {"configurable": {"thread_id": "thread-1"}}
+    async for event in graph.astream(
+        {"messages": [HumanMessage(content="Start run.")], "safety_check_passed": False},
+        config
+    ):
+        print(event)
+
+if __name__ == "__main__":
+    asyncio.run(test_run())
+```
+
+#### Concepts Learned & Significance
+*   **Concepts Learned:** Custom state definitions, node execution flow, conditional routing, in-memory checkpoint memory persistence, and cyclic graphs.
+*   **Significance:** Demonstrates how to write a self-correction loop where the output is checked and updated automatically before ending.
 
 ---
 
 ### R. Scaling Path
 
 #### Beginner
-*   *Topics:* State, Nodes, Edges, basic ReAct loops.
-*   *Skills:* Creating simple graph paths, binding tools, running state updates.
-*   *Projects:* A local command-line agent that calls weather tools.
-*   *Completion:* Build an agent that runs loops, calls tools, and updates the state.
+*   *Topics:* State schemas, nodes, edges, ReAct loop structures.
+*   *Skills:* Creating simple graphs, binding tools, updating state.
+*   *Projects:* A local command-line agent that calls basic tools (e.g. weather).
+*   *Completion:* Build an agent that runs loops, calls tools, and updates state.
 
 #### Intermediate
 *   *Topics:* Reducers, Checkpoints, Interrupts, Human-in-the-loop.
-*   *Skills:* Persisting state to SQLite, pausing workflows, updating state mid-run.
+*   *Skills:* SQLite savers, pausing execution, editing states.
 *   *Projects:* A customer support graph that pauses for approval on high-value refunds.
 *   *Completion:* Run a graph that saves checkpoints and pauses for user input before executing a tool.
 
 #### Advanced
 *   *Topics:* Subgraphs, Multi-agent collaboration, Supervisor patterns.
-*   *Skills:* Nesting graphs, routing tasks between agents, and merging states.
+*   *Skills:* Nesting graphs, routing tasks between agents, merging states.
 *   *Projects:* A coding assistant where a planner agent delegating tasks to coder and tester subagents.
 *   *Completion:* Compile a multi-agent system that coordinates tasks and resolves conflicts.
 
